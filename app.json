@@ -1,0 +1,19 @@
+{
+  "name": "Twilio MMS Visual Translator",
+  "description": "Uses Camfind and ",
+  "keywords": [
+    "small",
+    "sharp",
+    "tool"
+  ],
+  "addons": [],
+  "env": {
+    "LANG": "en_US.UTF-8",
+    "RACK_ENV": "production",
+    "TWILIO_ACCOUNT_SID": "",
+    "TWILIO_AUTH_TOKEN": "",
+    "MASHAPE_KEY": "",
+    "BING_TRANSLATE_SECRET": "",
+    "BING_TRANSLATE_ID": ""
+  }
+}
