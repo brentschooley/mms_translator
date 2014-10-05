@@ -1,10 +1,10 @@
 {
   "name": "Twilio MMS Visual Translator",
-  "description": "Uses Camfind and ",
+  "description": "Uses Twilio MMS, Camfind and Microsoft Translator to translate a photo into text in a different language.",
   "keywords": [
-    "small",
-    "sharp",
-    "tool"
+    "twilio",
+    "mms",
+    "translation"
   ],
   "addons": [],
   "env": {
