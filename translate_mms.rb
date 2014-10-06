@@ -4,6 +4,12 @@ require 'unirest'
 require 'sinatra/run-later'
 require 'bing_translator'
 
+mashape_key = ENV['MASHAPE_KEY']
+bing_translate_id = ENV['BING_TRANSLATE_ID']
+bing_translate_secret = ENV['BING_TRANSLATE_SECRET']
+twilio_accountsid = ENV['TWILIO_ACCOUNT_SID']
+twilio_authtoken = ENV['TWILIO_AUTH_TOKEN']
+
 def check_language(language)
   case language
   when /spanish/
@@ -24,36 +30,35 @@ end
 post '/translate' do
   # This block will execute after the /translate endpoint returns
   run_later do
-    translator = BingTranslator.new(ENV['BING_TRANSLATE_ID'], ENV['BING_TRANSLATE_SECRET'])
-
     token_response = Unirest.post "https://camfind.p.mashape.com/image_requests",
-         headers:{
-            "X-Mashape-Key" => ENV['MASHAPE_KEY']
-          },
-         parameters:{
-           "image_request[locale]" => "en_US",
-           "image_request[remote_image_url]" => @picture_url
-         }
+    headers:{
+      "X-Mashape-Key" => mashape_key
+      },
+      parameters:{
+       "image_request[locale]" => "en_US",
+       "image_request[remote_image_url]" => @picture_url
+     }
 
-    token = token_response.body['token']
+     token = token_response.body['token']
 
-    # Need to wait for image analysis
-    sleep(60)
+  # Need to wait for image analysis
+  sleep(60)
 
-    # Get the details from the analysis
-    image_response = Unirest.get "https://camfind.p.mashape.com/image_responses/#{token}",
-        headers:{"X-Mashape-Key" => ENV['MASHAPE_KEY']}
+  # Get the details from the analysis
+  image_response = Unirest.get "https://camfind.p.mashape.com/image_responses/#{token}",
+  headers:{"X-Mashape-Key" => mashape_key}
 
-    status = image_response.body['status']
-    description = image_response.body['name']
+  status = image_response.body['status']
+  description = image_response.body['name']
 
-    translated = translator.translate description, :from => 'en', :to => @language_format
+  translator = BingTranslator.new(bing_translate_id, bing_translate_secret)
+  translated = translator.translate description, :from => 'en', :to => @language_format
 
-    client = Twilio::REST::Client.new ENV['TWILIO_ACCOUNT_SID'], ENV['TWILIO_AUTH_TOKEN']
-    client.account.messages.create(
-      to: @incoming_number, 
-      from: '+12028001180', 
-      body: "Got it, I think your picture contains: #{description}. In #{@requested_language} that would be: #{translated}"
+  client = Twilio::REST::Client.new twilio_accountsid, twilio_authtoken
+  client.account.messages.create(
+    to: @incoming_number, 
+    from: '+12028001180', 
+    body: "Got it, I think your picture contains: #{description}. In #{@requested_language} that would be: #{translated}"
     )
   end
 
@@ -63,14 +68,22 @@ post '/translate' do
   @incoming_number = params[:From]
 
   if @requested_language.nil? || @requested_language.empty?
-    # Default to Spanish
-    @requested_language = "Spanish"
+    # Default to French
+    @requested_language = "French"
   end
 
   if @requested_language.downcase == "list"
     # Return the allowed language list...
     twiml = Twilio::TwiML::Response.new do |r|
-      r.Message "Supported languages for translation are: Spanish, French, German, Italian, and Klingon. Please send one of these with a picture and I'll translate it for you! Default language is Spanish if one is not specified."
+      r.Message "Supported languages for translation are: Spanish, French, German, Italian, and Klingon. Please send one of these with a picture and I'll translate it for you! Default language is French if one is not specified."
+    end
+
+    return twiml.text
+  end
+
+  if @picture_url.nil? || @picture_url.empty?
+    twiml = Twilio::TwiML::Response.new do |r|
+      r.Message "No image sent. Please send a picture with text indicating a supported translation language."
     end
 
     return twiml.text
@@ -82,14 +95,6 @@ post '/translate' do
   if @language_format.nil?
     twiml = Twilio::TwiML::Response.new do |r|
       r.Message "#{@requested_language} is not a supported translator language. Supported languages for translation are: Spanish, French, German, Italian, and Klingon. Please send one of these along with a picture and I'll translate it for you!"
-    end
-
-    return twiml.text
-  end
-
-  if @picture_url.nil? || @picture_url.empty?
-    twiml = Twilio::TwiML::Response.new do |r|
-      r.Message "No image sent. Please send a picture with text indicating a supported translation language."
     end
 
     return twiml.text
