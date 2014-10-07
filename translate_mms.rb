@@ -27,6 +27,13 @@ def check_language(language)
   end
 end
 
+before do
+  # Set up some variables to use in the run_later code.
+  @requested_language = params[:Body].strip
+  @picture_url = params[:MediaUrl0]
+  @incoming_number = params[:From]
+end
+
 post '/translate' do
   # This block will execute after the /translate endpoint returns
   run_later do
@@ -61,11 +68,6 @@ post '/translate' do
     body: "Got it, I think your picture contains: #{description}. In #{@requested_language} that would be: #{translated}"
     )
   end
-
-  # Set up some variables to use in the run_later code.
-  @requested_language = params[:Body].strip
-  @picture_url = params[:MediaUrl0]
-  @incoming_number = params[:From]
 
   if @requested_language.nil? || @requested_language.empty?
     # Default to French
